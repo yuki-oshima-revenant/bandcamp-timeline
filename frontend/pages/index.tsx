@@ -30,10 +30,10 @@ const Index: NextPage = () => {
 
     return (
         <div className="bg-black text-white min-h-screen">
-            <header className="fixed h-16 flex w-full px-6">
-                <div className="h-auto my-auto font-bold text-6xl tracking-tighter">bandcamp-timeline</div>
+            <header className="fixed lg:h-16 h-12 flex w-full lg:px-7 px-4">
+                <div className="h-auto font-bold lg:text-6xl text-3xl tracking-tighter lg:pt-3 pt-1">bandcamp-timeline</div>
                 <div className='flex-grow' />
-                <div className='text-xl flex'>
+                <div className='lg:text-xl text-lg flex'>
                     <ImTwitter
                         className="h-auto my-auto cursor-pointer"
                         onClick={() => {
@@ -48,14 +48,14 @@ const Index: NextPage = () => {
                     />
                 </div>
             </header>
-            <div style={{ minHeight: 'calc(100vh - 48px)' }} className="px-2 pt-20">
+            <div style={{ minHeight: 'calc(100vh - 48px)' }} className="lg:pt-24 pt-12 lg:px-4 px-2">
                 {releaseByTerm && Object.entries(releaseByTerm).map(([term, releases]) => (
                     <div key={term} className="mb-2">
-                        <div className="font-bold text-3xl px-4">{term}</div>
-                        <div className="grid xl:grid-cols-6 md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-2">
+                        <div className="font-bold lg:text-3xl text-xl lg:px-4 px-2">{term}</div>
+                        <div className="grid xl:grid-cols-6 md:grid-cols-4 grid-cols-2">
                             {
                                 releases.map(({ link, coverLink, title, artist, label, date }) => (
-                                    <div key={link} className="hover:bg-cyan-900/40 duration-300 p-4 rounded">
+                                    <div key={link} className="hover:bg-cyan-900/50 duration-300 lg:p-4 p-3 rounded ">
                                         <a href={link || ''} target="_blank" rel="noreferrer">
                                             <img src={coverLink || ''} className="w-full" />
                                             <div className="mt-2">
