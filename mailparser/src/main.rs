@@ -199,16 +199,12 @@ mod tests {
     #[tokio::test]
     async fn test_parse() {
         dotenv().ok();
-        // let mail = fs::read("./data/p1lnu3mp1969b9ii8fnmcm02tk6b04kikcpq17g1").unwrap();
-        // let mail = fs::read("./data/773n80qmek46p0d9u6ibcs1o430nrnljucuqt401").unwrap();
-        // let mail = fs::read("./data/ulpauftrm00fttu6r9jaa49haqrgn6mf1otqh5g1").unwrap();
-
         let aws_config = aws_config::from_env().load().await;
         let s3_client = aws_sdk_s3::Client::new(&aws_config);
         let mail = get_mail(
             s3_client,
             &String::from("mailrecieve.unronritaro.net"),
-            &String::from("p1lnu3mp1969b9ii8fnmcm02tk6b04kikcpq17g1"),
+            &String::from("BCdaIfbZSr6YhE2x8XM3BQ.eml"),
         )
         .await;
         let mail_data = parse(mail).await;
