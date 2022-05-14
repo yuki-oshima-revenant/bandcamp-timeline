@@ -31,7 +31,7 @@ const Index: NextPage = () => {
     return (
         <div className="bg-black text-white min-h-screen">
             <header className="fixed lg:h-16 h-12 flex w-full lg:px-7 px-4">
-                <div className="h-auto font-bold lg:text-6xl text-3xl tracking-tighter lg:pt-3 pt-1">bandcamp-timeline</div>
+                <div className="h-auto font-bold lg:text-6xl text-3xl tracking-[-0.07em] lg:pt-3 pt-1">bandcamp-timeline</div>
                 <div className='flex-grow' />
                 <div className='lg:text-xl text-lg flex'>
                     <ImTwitter
@@ -51,7 +51,7 @@ const Index: NextPage = () => {
             <div style={{ minHeight: 'calc(100vh - 48px)' }} className="lg:pt-24 pt-12 lg:px-4 px-2">
                 {releaseByTerm && Object.entries(releaseByTerm).map(([term, releases]) => (
                     <div key={term} className="mb-2">
-                        <div className="font-bold lg:text-3xl text-xl lg:px-4 px-2">{term}</div>
+                        <div className="font-bold lg:text-3xl text-xl lg:px-4 px-2 tracking-tight">{term}</div>
                         <div className="grid xl:grid-cols-6 md:grid-cols-4 grid-cols-2">
                             {
                                 releases.map(({ link, coverLink, title, artist, label, date }) => (
