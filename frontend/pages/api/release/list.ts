@@ -10,9 +10,10 @@ const handler = async (
     }>
 ) => {
     aws.config.credentials = new aws.Credentials({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID_DYNAMO || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_DYNAMO || '',
     });
+    aws.config.region = 'ap-northeast-1'
     const dynamoClient = new aws.DynamoDB();
     const dynamoResponse = await dynamoClient.query({
         TableName: 'bandcamp_release',
