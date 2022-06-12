@@ -1,4 +1,3 @@
-use core::panic;
 use mail_parser::{HeaderValue, Message};
 use regex::Regex;
 use scraper::{Html, Selector};
@@ -7,6 +6,7 @@ extern crate dotenv;
 use aws_sdk_dynamodb;
 use aws_sdk_dynamodb::model::AttributeValue;
 use aws_sdk_s3;
+use aws_sdk_sns;
 use lambda_runtime;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,6 +18,12 @@ struct MailData {
     artist: Option<String>,
     link: String,
     cover_link: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ForwardMailData {
+    subject: String,
+    from: String,
+    body: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,15 +94,28 @@ async fn handler(event: S3PutEvent, _ctx: lambda_runtime::Context) -> Response {
     let aws_config = aws_config::from_env().load().await;
     let s3_client = aws_sdk_s3::Client::new(&aws_config);
     let dynamo_client = aws_sdk_dynamodb::Client::new(&aws_config);
-    let mail = get_mail(
-        s3_client,
-        &event.records[0].s3.bucket.name,
-        &event.records[0].s3.object.key,
-    )
-    .await;
-    let mail_data = parse(mail).await;
-    insert_data(dynamo_client, mail_data).await;
-    Ok(SuccessResponse {})
+    let sns_client = aws_sdk_sns::Client::new(&aws_config);
+    let s3_bucket = &event.records[0].s3.bucket.name;
+    let s3_key = &event.records[0].s3.object.key;
+    let mail = get_mail(s3_client, s3_bucket, s3_key).await;
+    let message = Message::parse(mail.as_slice()).unwrap();
+    let from = extract_address(&message).unwrap();
+    if from == "noreply@bandcamp.com" {
+        match parse_bandcamp_mail(&message) {
+            Ok(mail_data) => {
+                insert_data(dynamo_client, mail_data).await;
+                return Ok(SuccessResponse {});
+            }
+            Err(message) => {
+                println!("invalid mail: {}", message);
+                return Ok(SuccessResponse {});
+            }
+        }
+    } else {
+        let body = parse_forward_mail(&message);
+        forward_mail(sns_client, body, s3_bucket, s3_key).await;
+        Ok(SuccessResponse {})
+    }
 }
 
 async fn get_mail(
@@ -114,20 +133,20 @@ async fn get_mail(
     response.body.collect().await.unwrap().into_bytes().to_vec()
 }
 
-async fn parse(mail_bytes: Vec<u8>) -> MailData {
-    let message = Message::parse(mail_bytes.as_slice()).unwrap();
+fn extract_address(message: &Message) -> Option<String> {
+    match message.get_from() {
+        HeaderValue::Address(from) => Some(from.address.to_owned().unwrap().into_owned()),
+        _ => None,
+    }
+}
+
+fn parse_bandcamp_mail(message: &Message) -> Result<MailData, String> {
     let to = match message.get_to() {
         HeaderValue::Address(a) => Some(a),
         _ => None,
     }
     .unwrap();
     let date = message.get_date().unwrap().to_iso8601();
-    let from = match message.get_from() {
-        HeaderValue::Address(a) => Some(a),
-        _ => None,
-    }
-    .unwrap();
-    assert_eq!(from.address.as_ref().unwrap(), "noreply@bandcamp.com");
     let body = message.get_html_body(0).unwrap();
     let document = Html::parse_document(body.as_ref());
     let div_element = document
@@ -138,7 +157,7 @@ async fn parse(mail_bytes: Vec<u8>) -> MailData {
     let mut texts = div_element.text().collect::<Vec<&str>>().into_iter();
     let label = match texts.find(|x| Regex::new(r"released").unwrap().is_match(x)) {
         Some(str) => str.replace(" just released ", "").replace("\n", ""),
-        None => panic!("\"released\" clause not found."),
+        None => return Err(String::from("\"released\" clause not found.")),
     };
     let title = texts.next().unwrap().to_owned();
     let artist = match texts.find(|x| Regex::new(r"by").unwrap().is_match(x)) {
@@ -158,7 +177,7 @@ async fn parse(mail_bytes: Vec<u8>) -> MailData {
         .next()
         .unwrap();
     let cover_link = img_element.value().attr("src").unwrap().to_owned();
-    MailData {
+    Ok(MailData {
         to: to.address.to_owned().unwrap().into_owned(),
         date,
         label,
@@ -166,7 +185,7 @@ async fn parse(mail_bytes: Vec<u8>) -> MailData {
         artist,
         link,
         cover_link,
-    }
+    })
 }
 
 async fn insert_data(dynamo_client: aws_sdk_dynamodb::Client, mail_data: MailData) {
@@ -191,13 +210,45 @@ async fn insert_data(dynamo_client: aws_sdk_dynamodb::Client, mail_data: MailDat
         .unwrap();
 }
 
+fn parse_forward_mail(message: &Message) -> ForwardMailData {
+    let body = Regex::new(r"[\r]?\n")
+        .unwrap()
+        .replace_all(message.get_text_body(0).unwrap().as_ref(), " ")
+        .into_owned();
+    ForwardMailData {
+        subject: message.get_subject().unwrap().to_owned(),
+        from: extract_address(&message).unwrap(),
+        body,
+    }
+}
+
+async fn forward_mail(
+    sns_client: aws_sdk_sns::Client,
+    body: ForwardMailData,
+    s3_bucket: &String,
+    s3_key: &String,
+) {
+    sns_client
+        .publish()
+        .topic_arn("arn:aws:sns:ap-northeast-1:621702102095:forward-from-mailparser")
+        .message(format!(
+            "forward from mailparser\n\ns3_bucket: {}\n\ns3_key: {}\n\nForwardMailData: {}",
+            s3_bucket,
+            s3_key,
+            serde_json::to_string_pretty(&body).unwrap()
+        ))
+        .send()
+        .await
+        .unwrap();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use dotenv::dotenv;
     // use std::fs;
     #[tokio::test]
-    async fn test_parse() {
+    async fn test_parse_bandcamp_mail() {
         dotenv().ok();
         let aws_config = aws_config::from_env().load().await;
         let s3_client = aws_sdk_s3::Client::new(&aws_config);
@@ -207,8 +258,23 @@ mod tests {
             &String::from("BCdaIfbZSr6YhE2x8XM3BQ.eml"),
         )
         .await;
-        let mail_data = parse(mail).await;
+        let message = Message::parse(mail.as_slice()).unwrap();
+        let mail_data = parse_bandcamp_mail(&message);
         println!("{}", serde_json::to_string_pretty(&mail_data).unwrap());
+    }
+    #[tokio::test]
+    async fn test_forward_mail() {
+        dotenv().ok();
+        let aws_config = aws_config::from_env().load().await;
+        let s3_client = aws_sdk_s3::Client::new(&aws_config);
+        let sns_client = aws_sdk_sns::Client::new(&aws_config);
+        let s3_bucket = &String::from("mailrecieve.unronritaro.net");
+        let s3_key = &String::from("BCdaIfbZSr6YhE2x8XM3BQ.eml");
+
+        let mail = get_mail(s3_client, s3_bucket, s3_key).await;
+        let message = Message::parse(mail.as_slice()).unwrap();
+        let body = parse_forward_mail(&message);
+        forward_mail(sns_client, body, s3_bucket, s3_key).await;
     }
     #[tokio::test]
     async fn test_query_table() {
