@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import aws from 'aws-sdk';
 import dayjs from 'dayjs';
 import { Release } from '../../../lib/types';
+import { getDynamoDBClient } from '../../../lib/utils/aws';
+import { withSession } from '../../../lib/utils/session';
+import { IronSessionData } from 'iron-session';
 
 const handler = async (
     req: NextApiRequest,
@@ -9,19 +11,19 @@ const handler = async (
         releases: Release[]
     }>
 ) => {
-    aws.config.credentials = new aws.Credentials({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID_DYNAMO || '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_DYNAMO || '',
-    });
-    aws.config.region = 'ap-northeast-1'
-    const dynamoClient = new aws.DynamoDB();
+    const { user } = req.session as IronSessionData;
+    if (!user || !user.email) {
+        res.status(401).end();
+        return;
+    }
+    const dynamoClient = getDynamoDBClient();
     const dynamoResponse = await dynamoClient.query({
         TableName: 'bandcamp_release',
         KeyConditions: {
             to: {
                 ComparisonOperator: 'EQ',
                 AttributeValueList: [{
-                    S: 'revenant.jumboride@gmail.com'
+                    S: user.email
                 }]
             }
         }
@@ -44,4 +46,4 @@ const handler = async (
     res.status(200).json({ releases })
 };
 
-export default handler;
+export default withSession(handler);
