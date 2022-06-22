@@ -143,21 +143,6 @@ const Index: NextPage = () => {
                                 <VscAccount className="h-auto my-auto w-6" />
                             </div>
                         )}
-
-                        {/* <div className="lg:text-xl text-lg flex">
-                            <ImTwitter
-                                className="h-auto my-auto cursor-pointer"
-                                onClick={() => {
-                                    window.open("https://twitter.com/Re_venant", "_blank",);
-                                }}
-                            />
-                            <ImGithub
-                                className="h-auto my-auto ml-2 cursor-pointer"
-                                onClick={() => {
-                                    window.open('https://github.com/yuki-oshima-revenant/bandcamp-timeline', '_blank');
-                                }}
-                            />
-                        </div> */}
                         {user && (
                             <div
                                 className={`absolute bg-black top-14 right-2 lg:right-4 transition duration-200 w-64 z-50`}
@@ -182,7 +167,6 @@ const Index: NextPage = () => {
                                 </div>
                             </div>
                         )}
-
                     </header>
                     <div style={{ minHeight: 'calc(100vh - 48px)' }} className="lg:pt-24 pt-12 lg:px-4 px-2">
                         {isLogin ? (
@@ -254,7 +238,28 @@ const Index: NextPage = () => {
                             </div>
                         )}
                     </div>
-                    <footer className='h-12 text-center py-4 text-sm'>©︎ 2022 Yuki Oshima</footer>
+                    <footer className='h-12 py-4 text-sm flex'>
+                        <div className="w-auto flex mx-auto">
+                            <div>
+                                ©︎ 2022 Yuki Oshima
+                            </div>
+                            <div className="lg:text-lg text-sm flex ml-3">
+                                <ImTwitter
+                                    className="h-auto my-auto cursor-pointer"
+                                    onClick={() => {
+                                        window.open("https://twitter.com/Re_venant", "_blank",);
+                                    }}
+                                />
+                                <ImGithub
+                                    className="h-auto my-auto ml-2 cursor-pointer"
+                                    onClick={() => {
+                                        window.open('https://github.com/yuki-oshima-revenant/bandcamp-timeline', '_blank');
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                    </footer>
                 </div>
             </div>
         </div >
