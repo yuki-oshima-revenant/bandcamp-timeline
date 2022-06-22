@@ -6,3 +6,7 @@ export type Release = {
     coverLink: string | null,
     title: string | null
 }
+
+export type User = {
+    email: string
+}

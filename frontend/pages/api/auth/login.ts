@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Release } from '../../../lib/types';
+import { Release, User } from '../../../lib/types';
 import argon2 from 'argon2';
 import { getDynamoDBClient } from '../../../lib/utils/aws';
 import { withSession } from '../../../lib/utils/session';
@@ -8,10 +8,10 @@ import { IronSessionData } from 'iron-session';
 const handler = async (
     req: NextApiRequest,
     res: NextApiResponse<{
-        releases: Release[]
+        user: User
     }>
 ) => {
-    const { email, password } = req.body;
+    const { email, password } = req.body as { email?: string, password?: string };
     if (!email || !password) {
         res.status(400).end();
         return;
@@ -54,7 +54,7 @@ const handler = async (
             email,
         };
         await req.session.save();
-        res.status(200).end();
+        res.status(200).json({ user: { email } });
     } else {
         res.status(401).end();
     }
