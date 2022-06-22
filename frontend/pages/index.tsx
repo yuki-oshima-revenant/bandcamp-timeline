@@ -99,8 +99,6 @@ const Index: NextPage = () => {
 
     useEffect(() => {
         const onClick = (e: MouseEvent) => {
-            console.log(e);
-
             if (accountButtonRef.current) {
                 const { top, bottom, right, left } = accountButtonRef.current.getBoundingClientRect();
                 if (e.clientX >= left && e.clientX <= right && e.clientY >= top && e.clientY <= bottom) {
