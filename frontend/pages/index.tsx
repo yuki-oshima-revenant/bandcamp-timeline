@@ -99,15 +99,17 @@ const Index: NextPage = () => {
 
     useEffect(() => {
         const onClick = (e: MouseEvent) => {
+            console.log(e);
+
             if (accountButtonRef.current) {
                 const { top, bottom, right, left } = accountButtonRef.current.getBoundingClientRect();
-                if (e.pageX >= left && e.pageX <= right && e.pageY >= top && e.pageY <= bottom) {
+                if (e.clientX >= left && e.clientX <= right && e.clientY >= top && e.clientY <= bottom) {
                     return;
                 }
             }
             if (accountMenuRef.current) {
                 const { top, bottom, right, left } = accountMenuRef.current.getBoundingClientRect();
-                if (e.pageX < left || e.pageX > right || e.pageY < top || e.pageY > bottom) {
+                if (e.clientX < left || e.clientX > right || e.clientY < top || e.clientY > bottom) {
                     setAccountMenuOpen(false);
                 }
             }
